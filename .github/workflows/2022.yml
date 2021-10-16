@@ -1,0 +1,42 @@
+name: 2022
+on: workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: windows-2022
+    timeout-minutes: 99999999
+
+    steps:
+    - name: Mendownload Ngrok.
+      run: |
+        Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Invoke-WebRequest https://raw.githubusercontent.com/FawyGT/RemoteScript/main/start.bat -OutFile start.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/FawyGT/RemoteScript/main/timeout.ps1 -OutFile timeout.ps1
+    - name: Mendownload Launcher.
+      run: |
+        Invoke-WebRequest https://growtopiagame.com/Growtopia-Installer.exe -OutFile Growtopia-Installer.exe
+        Invoke-WebRequest https://raw.githubusercontent.com/FawyGT/RemoteScript/main/Growtopia.exe -OutFile Growtopia.exe
+        Invoke-WebRequest https://raw.githubusercontent.com/FawyGT/RemoteScript/main/config.ini -OutFile save.dat
+    - name: Mengextract Ngrok File.
+      run: Expand-Archive ngrok.zip
+    - name: Connect Ke Akun Ngrok.
+      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+    - name: Mengaktifkan Akses.
+      run: | 
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        copy Growtopia-Installer.exe C:\Users\Public\Desktop\Growtopia-Installer.exe
+        copy Growtopia.exe C:\Users\Public\Desktop\Growtopia.exe
+        copy save.dat C:\Users\Public\Desktop\save.dat
+
+
+    - name: Membuat Tunnel.
+      run: Start-Process Powershell -ArgumentList '-Noexit -Command ".\ngrok\ngrok.exe tcp --region ap 3389"'
+    - name: Info Login
+      run: cmd /c start.bat
+    - name: Keep Alive
+      run: ./timeout.ps1
